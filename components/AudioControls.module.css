@@ -1,0 +1,56 @@
+.controls {
+  display: grid;
+  width: 154px;
+  max-width: 100%;
+  min-width: 0;
+  gap: 2px;
+  padding: 3px 5px;
+  border: 1px solid #59656d;
+  border-radius: 4px;
+  background: #171c22;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .08);
+}
+
+.control {
+  display: grid;
+  grid-template-columns: 34px minmax(42px, 1fr) 24px;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  color: #f5f5df;
+  font-size: .52rem;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.control input {
+  width: 100%;
+  min-width: 0;
+  height: 13px;
+  margin: 0;
+  accent-color: #c4ed65;
+  cursor: pointer;
+}
+
+.control input:focus-visible {
+  outline: 2px solid #36e7ee;
+  outline-offset: 2px;
+}
+
+.control output {
+  color: #c4ed65;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@media (max-width: 600px) {
+  .controls { width: 128px; gap: 1px; padding: 2px 4px; }
+  .control { grid-template-columns: 28px minmax(36px, 1fr) 22px; gap: 2px; font-size: .49rem; }
+  .control input { height: 12px; }
+}
+
+@media (max-width: 360px) {
+  .controls { width: 112px; }
+  .control { grid-template-columns: 25px minmax(32px, 1fr) 20px; font-size: .46rem; }
+}

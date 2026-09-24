@@ -138,6 +138,13 @@ function validSnapshot(value: unknown): value is BoardSnapshot {
     }
   }
 
+  if (value.held !== null && !(PIECES as readonly unknown[]).includes(value.held)) return false;
+  if (
+    !Array.isArray(value.queue) ||
+    value.queue.length !== 5 ||
+    !value.queue.every((piece) => (PIECES as readonly unknown[]).includes(piece))
+  ) return false;
+
   return (
     Number.isSafeInteger(value.score) &&
     (value.score as number) >= 0 &&

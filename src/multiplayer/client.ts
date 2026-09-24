@@ -130,6 +130,12 @@ function isBoardSnapshot(value: unknown): value is BoardSnapshot {
         "rotation" in value.active &&
         [0, 1, 2, 3].includes(value.active.rotation as number))
     ) ||
+    !("held" in value) ||
+    !(value.held === null || PIECES.includes(value.held as (typeof PIECES)[number])) ||
+    !("queue" in value) ||
+    !Array.isArray(value.queue) ||
+    value.queue.length !== 5 ||
+    !value.queue.every((piece) => PIECES.includes(piece as (typeof PIECES)[number])) ||
     !("score" in value) ||
     !isFiniteNumber(value.score) ||
     !("lines" in value) ||

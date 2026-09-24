@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, memo, type RefObject } from "react";
 import { HIDDEN_ROWS, type GameState, type PieceType } from "@/src/game/contracts";
+import { previewShapes } from "@/src/presentation/piecePreview";
 import type { ArcadeFeedback } from "@/src/presentation/contracts";
+import AudioControls from "./AudioControls";
 import styles from "./GameView.module.css";
 
 export interface GameViewProps {
@@ -13,8 +15,10 @@ export interface GameViewProps {
   feedback: ArcadeFeedback | null;
   bestScore: number;
   newBest: boolean;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
+  musicVolume: number;
+  soundVolume: number;
+  onMusicVolumeChange: (value: number) => void;
+  onSoundVolumeChange: (value: number) => void;
   reducedMotion: boolean;
   screen: "menu" | "countdown" | "game";
   countdown: 3 | 2 | 1 | null;
@@ -25,22 +29,6 @@ export interface GameViewProps {
   onPause: () => void;
   onResume: () => void;
 }
-
-type PreviewShape = {
-  columns: number;
-  rows: number;
-  cells: readonly (readonly [number, number])[];
-};
-
-const previewShapes: Record<PieceType, PreviewShape> = {
-  I: { columns: 4, rows: 1, cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
-  O: { columns: 2, rows: 2, cells: [[0, 0], [1, 0], [0, 1], [1, 1]] },
-  T: { columns: 3, rows: 2, cells: [[1, 0], [0, 1], [1, 1], [2, 1]] },
-  S: { columns: 3, rows: 2, cells: [[1, 0], [2, 0], [0, 1], [1, 1]] },
-  Z: { columns: 3, rows: 2, cells: [[0, 0], [1, 0], [1, 1], [2, 1]] },
-  J: { columns: 3, rows: 2, cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
-  L: { columns: 3, rows: 2, cells: [[2, 0], [0, 1], [1, 1], [2, 1]] },
-};
 
 const pieceClasses: Record<PieceType, string> = {
   I: styles.pieceI,
@@ -99,8 +87,10 @@ export default function GameView({
   feedback,
   bestScore,
   newBest,
-  soundEnabled,
-  onToggleSound,
+  musicVolume,
+  soundVolume,
+  onMusicVolumeChange,
+  onSoundVolumeChange,
   reducedMotion,
   screen,
   countdown,
@@ -169,16 +159,12 @@ export default function GameView({
         </div>
         <div className={styles.headerTools}>
           <StatusPill game={screen === "menu" ? null : game} />
-          <button
-            className={styles.soundButton}
-            type="button"
-            onClick={onToggleSound}
-            aria-pressed={soundEnabled}
-            aria-label={soundEnabled ? "Turn sound off" : "Turn sound on"}
-          >
-            <span className={styles.soundGlyph} aria-hidden="true">{soundEnabled ? "♪" : "×"}</span>
-            <span>Sound {soundEnabled ? "on" : "off"}</span>
-          </button>
+          <AudioControls
+            musicVolume={musicVolume}
+            soundVolume={soundVolume}
+            onMusicVolumeChange={onMusicVolumeChange}
+            onSoundVolumeChange={onSoundVolumeChange}
+          />
         </div>
       </header>
       {screen === "menu" ? (

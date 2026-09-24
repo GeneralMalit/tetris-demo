@@ -1,4 +1,4 @@
-import type { ActivePiece, Board } from "../game/contracts";
+import type { ActivePiece, Board, PieceType } from "../game/contracts";
 
 export type Seat = "host" | "guest";
 export type MatchPhase = "waiting" | "countdown" | "playing" | "finished";
@@ -8,6 +8,8 @@ export type FinishReason = "topout" | "disconnect" | "left";
 export interface BoardSnapshot {
   board: Board;
   active: ActivePiece | null;
+  held: PieceType | null;
+  queue: PieceType[];
   score: number;
   lines: number;
   level: number;

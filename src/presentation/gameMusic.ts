@@ -9,7 +9,7 @@ const COUNTDOWN_FADE_MS = 3_000;
 export class GameMusic {
   private readonly menu = new Audio(MENU_TRACK);
   private readonly game = new Audio(GAME_TRACK);
-  private enabled = false;
+  private volume = 0;
   private unlocked = false;
   private disposed = false;
   private status: GameStatus | null | "countdown" = null;
@@ -20,13 +20,13 @@ export class GameMusic {
     for (const track of [this.menu, this.game]) {
       track.loop = true;
       track.preload = "none";
-      track.volume = TRACK_VOLUME;
+      track.volume = 0;
     }
   }
 
-  setEnabled(enabled: boolean): void {
+  setVolume(volume: number): void {
     if (this.disposed) return;
-    this.enabled = enabled;
+    this.volume = Number.isFinite(volume) ? Math.max(0, Math.min(100, Math.round(volume))) : 0;
     this.sync();
   }
 
@@ -53,7 +53,7 @@ export class GameMusic {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
-    this.enabled = false;
+    this.volume = 0;
     this.stopFade();
     this.menu.pause();
     this.game.pause();
@@ -66,7 +66,7 @@ export class GameMusic {
   private sync(): void {
     if (this.disposed) return;
 
-    if (!this.enabled || !this.unlocked) {
+    if (this.volume === 0 || !this.unlocked) {
       this.stopFade();
       this.menu.pause();
       this.game.pause();
@@ -114,15 +114,17 @@ export class GameMusic {
 
   private applySteadyVolumes(): void {
     const playing = this.status === "playing" || this.status === "paused";
-    this.menu.volume = playing ? 0 : TRACK_VOLUME;
-    this.game.volume = playing ? TRACK_VOLUME : 0;
+    const volume = TRACK_VOLUME * this.volume / 100;
+    this.menu.volume = playing ? 0 : volume;
+    this.game.volume = playing ? volume : 0;
   }
 
   private applyCountdownVolumes(now: number): number {
     const elapsed = Math.max(0, now - (this.countdownStartedAt ?? now));
     const progress = Math.min(elapsed / COUNTDOWN_FADE_MS, 1);
-    this.menu.volume = TRACK_VOLUME * (1 - progress);
-    this.game.volume = TRACK_VOLUME * progress;
+    const volume = TRACK_VOLUME * this.volume / 100;
+    this.menu.volume = volume * (1 - progress);
+    this.game.volume = volume * progress;
     return progress;
   }
 
@@ -144,7 +146,7 @@ export class GameMusic {
 
   private readonly updateFade = (now: number): void => {
     this.fadeFrame = null;
-    if (this.disposed || !this.enabled || !this.unlocked || this.status !== "countdown") return;
+    if (this.disposed || this.volume === 0 || !this.unlocked || this.status !== "countdown") return;
 
     if (this.applyCountdownVolumes(now) >= 1) {
       this.menu.pause();

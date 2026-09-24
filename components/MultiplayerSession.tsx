@@ -47,12 +47,15 @@ export interface MultiplayerSessionProps {
   onPhase: (phase: MatchPhase) => void;
   onGesture: () => void;
   onGameEvent: (event: GameEvent) => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
+  musicVolume: number;
+  soundVolume: number;
+  onMusicVolumeChange: (value: number) => void;
+  onSoundVolumeChange: (value: number) => void;
 }
 
 export default function MultiplayerSession({
-  onExit, onPhase, onGesture, onGameEvent, soundEnabled, onToggleSound,
+  onExit, onPhase, onGesture, onGameEvent,
+  musicVolume, soundVolume, onMusicVolumeChange, onSoundVolumeChange,
 }: MultiplayerSessionProps) {
   const boardRef = useRef<HTMLCanvasElement>(null);
   const opponentRef = useRef<HTMLCanvasElement>(null);
@@ -176,8 +179,8 @@ export default function MultiplayerSession({
       if (!current || current.phase !== "playing" || !state || !savedRoom ||
         activeMatchRef.current !== current.matchId) return;
       const snapshot: BoardSnapshot = {
-        board: state.board, active: state.active, score: state.score,
-        lines: state.lines, level: state.level, piecesPlaced: state.piecesPlaced,
+        board: state.board, active: state.active, held: state.held, queue: state.queue,
+        score: state.score, lines: state.lines, level: state.level, piecesPlaced: state.piecesPlaced,
       };
       clientRef.current?.send({ type: "board", matchId: current.matchId,
         sequence: ++sequenceRef.current, snapshot });
@@ -297,6 +300,7 @@ export default function MultiplayerSession({
     onNameChange={setName} onRoomCodeChange={setRoomCode} onCreate={create} onJoin={join}
     onReady={ready} onLeave={leave} boardRef={boardRef} opponentRef={opponentRef}
     playfieldRef={playfieldRef} onAction={action} onPress={press} onRelease={release}
-    soundEnabled={soundEnabled} onToggleSound={onToggleSound}
+    musicVolume={musicVolume} soundVolume={soundVolume}
+    onMusicVolumeChange={onMusicVolumeChange} onSoundVolumeChange={onSoundVolumeChange}
   />;
 }

@@ -18,22 +18,29 @@ const ROTATE_INTERVAL_SECONDS = 0.075;
 /** Small synthesized cabinet sounds; construction is inert until a user gesture unlocks audio. */
 export class ArcadeAudio {
   private context: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private readonly voices = new Map<OscillatorNode, GainNode>();
-  private enabled = false;
+  private volume = 0;
   private lastMoveAt = Number.NEGATIVE_INFINITY;
   private lastRotateAt = Number.NEGATIVE_INFINITY;
 
-  setEnabled(enabled: boolean): void {
-    this.enabled = enabled;
-    if (enabled) {
-      this.unlock();
-    } else {
+  setVolume(volume: number): void {
+    this.volume = Number.isFinite(volume) ? Math.max(0, Math.min(100, Math.round(volume))) : 0;
+    const context = this.context;
+    if (context && this.masterGain && context.state !== "closed") {
+      try {
+        this.masterGain.gain.setValueAtTime(this.volume / 100, context.currentTime);
+      } catch {
+        // Audio remains optional if a context rejects a live level change.
+      }
+    }
+    if (this.volume === 0) {
       this.stopVoices();
       this.suspend();
     }
   }
 
-  /** Call only from a start/resume/toggle user gesture. */
+  /** Call only from a user gesture, such as start/resume or a volume change. */
   unlock(): void {
     if (typeof window === "undefined") return;
     try {
@@ -42,6 +49,12 @@ export class ArcadeAudio {
           window.AudioContext ?? (window as WindowWithWebkitAudio).webkitAudioContext;
         if (!AudioContextConstructor) return;
         this.context = new AudioContextConstructor();
+      }
+      if (!this.masterGain) {
+        const masterGain = this.context.createGain();
+        masterGain.gain.value = this.volume / 100;
+        masterGain.connect(this.context.destination);
+        this.masterGain = masterGain;
       }
       if (this.context.state !== "running") {
         void this.context.resume().catch(() => undefined);
@@ -52,9 +65,10 @@ export class ArcadeAudio {
   }
 
   play(event: GameEvent): void {
-    if (!this.enabled) return;
+    if (this.volume === 0) return;
     const context = this.context;
-    if (!context || context.state !== "running") return;
+    const masterGain = this.masterGain;
+    if (!context || context.state !== "running" || !masterGain) return;
 
     const now = context.currentTime;
     let shape: ToneShape | null = null;
@@ -110,7 +124,7 @@ export class ArcadeAudio {
       case "gameOver":
         return;
     }
-    if (shape) this.playShape(context, now, shape);
+    if (shape) this.playShape(context, masterGain, now, shape);
   }
 
   /** Stop sounds without racing an asynchronous suspend against a same-gesture restart. */
@@ -119,16 +133,16 @@ export class ArcadeAudio {
   }
 
   dispose(): void {
-    this.enabled = false;
+    this.volume = 0;
     this.stopVoices();
     const context = this.context;
-    this.context = null;
+    this.masterGain = null;
     if (context && context.state !== "closed") {
       void context.close().catch(() => undefined);
     }
   }
 
-  private playShape(context: AudioContext, now: number, shape: ToneShape): void {
+  private playShape(context: AudioContext, masterGain: GainNode, now: number, shape: ToneShape): void {
     if (this.voices.size >= MAX_SIMULTANEOUS_TONES) {
       const oldest = this.voices.keys().next().value;
       if (oldest) this.stopVoice(oldest);
@@ -148,7 +162,7 @@ export class ArcadeAudio {
       gain.gain.linearRampToValueAtTime(shape.volume, now + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, endAt);
       oscillator.connect(gain);
-      gain.connect(context.destination);
+      gain.connect(masterGain);
       this.voices.set(oscillator, gain);
       oscillator.onended = () => {
         this.voices.delete(oscillator);

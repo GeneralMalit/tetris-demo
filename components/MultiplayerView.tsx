@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import type { GameAction, GameState } from "@/src/game/contracts";
+import type { GameAction, GameState, PieceType } from "@/src/game/contracts";
 import type { HeldAction } from "@/src/controller/gameController";
 import type { BoardSnapshot, PlayerSummary, RoomView, Seat } from "@/src/multiplayer/protocol";
 import type { ConnectionState } from "@/src/multiplayer/client";
+import AudioControls from "./AudioControls";
+import { previewShapes, type PreviewShape } from "@/src/presentation/piecePreview";
 import styles from "./MultiplayerView.module.css";
 
 export interface MultiplayerViewProps {
@@ -28,8 +30,10 @@ export interface MultiplayerViewProps {
   onAction: (action: GameAction) => void;
   onPress: (action: HeldAction) => void;
   onRelease: (action: HeldAction) => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
+  musicVolume: number;
+  soundVolume: number;
+  onMusicVolumeChange: (value: number) => void;
+  onSoundVolumeChange: (value: number) => void;
 }
 
 const numberFormat = new Intl.NumberFormat("en-US");
@@ -42,18 +46,10 @@ function getSeatName(player: PlayerSummary | null, fallback: string) {
   return player?.name || fallback;
 }
 
-function connectionLabel(connection: ConnectionState) {
-  switch (connection) {
-    case "connected": return "Connected";
-    case "connecting": return "Connecting";
-    case "reconnecting": return "Reconnecting";
-    case "disconnected": return "Disconnected";
-  }
-}
 
 function connectionMessage(connection: ConnectionState) {
   switch (connection) {
-    case "connected": return "Your room connection is live.";
+    case "connected": return "";
     case "connecting": return "Connecting to the room…";
     case "reconnecting": return "Connection interrupted. Reconnecting to your seat…";
     case "disconnected": return "Connection lost. Your seat is being held briefly for a reconnect.";
@@ -161,8 +157,10 @@ export default function MultiplayerView({
   onAction,
   onPress,
   onRelease,
-  soundEnabled,
-  onToggleSound,
+  musicVolume,
+  soundVolume,
+  onMusicVolumeChange,
+  onSoundVolumeChange,
 }: MultiplayerViewProps) {
   const [inviteUrl, setInviteUrl] = useState("");
   const [inviteNotice, setInviteNotice] = useState("");
@@ -228,9 +226,12 @@ export default function MultiplayerView({
           <span><strong>BLOCK PARTY</strong><small>HEAD-TO-HEAD</small></span>
         </button>
         <div className={styles.headerActions}>
-          <button className={styles.soundButton} type="button" onClick={onToggleSound} aria-pressed={soundEnabled} aria-label={soundEnabled ? "Turn sound off" : "Turn sound on"}>
-            <span aria-hidden="true">{soundEnabled ? "♫" : "×"}</span> Sound {soundEnabled ? "on" : "off"}
-          </button>
+          <AudioControls
+            musicVolume={musicVolume}
+            soundVolume={soundVolume}
+            onMusicVolumeChange={onMusicVolumeChange}
+            onSoundVolumeChange={onSoundVolumeChange}
+          />
           {room && <button className={styles.exitButton} type="button" onClick={onLeave}>Leave room</button>}
         </div>
       </header>
@@ -367,9 +368,6 @@ function RoomScreen({
           <p className={styles.eyebrow}>{room.phase === "waiting" ? "ROOM LOBBY" : room.phase === "finished" ? "FINAL RESULTS" : "HEAD-TO-HEAD"}</p>
           <h1 className={styles.roomHeading}>{room.phase === "waiting" ? "Ready when you are." : room.phase === "finished" ? resultTitle : "The face-off."}</h1>
         </div>
-        <div className={`${styles.connectionPill} ${styles[`connection_${connection}`]}`} role="status" aria-live="polite">
-          <span className={styles.connectionDot} aria-hidden="true" />{connectionLabel(connection)}
-        </div>
       </div>
       {room.phase !== "waiting" && room.phase !== "finished" && rival && !rival.connected && (
         <p className={styles.connectionNotice} role="status">{rivalName} lost connection. Their seat is held briefly while they reconnect.</p>
@@ -434,11 +432,12 @@ function RoomScreen({
               playfieldRef={playfieldRef}
               score={local?.score ?? you?.score ?? 0}
               lines={local?.lines ?? you?.lines ?? 0}
+              held={local?.held ?? null}
+              queue={local?.queue ?? []}
               pending={localPending}
               snapshotAvailable={Boolean(local)}
               liveLabel={room.phase === "finished" ? "FINAL" : "LIVE"}
             />
-            <div className={styles.vsBadge} aria-hidden="true">VS</div>
             <PlayerBoard
               name={rivalName}
               seat={opponentSeat}
@@ -447,6 +446,8 @@ function RoomScreen({
               playfieldRef={undefined}
               score={opponent?.score ?? rival?.score ?? 0}
               lines={opponent?.lines ?? rival?.lines ?? 0}
+              held={opponent?.held ?? null}
+              queue={opponent?.queue ?? []}
               pending={rivalPending}
               snapshotAvailable={Boolean(opponent)}
               liveLabel={room.phase === "finished" ? "FINAL" : "RIVAL"}
@@ -491,6 +492,8 @@ function PlayerBoard({
   playfieldRef,
   score,
   lines,
+  held,
+  queue,
   pending,
   snapshotAvailable,
   liveLabel,
@@ -502,6 +505,8 @@ function PlayerBoard({
   playfieldRef: RefObject<HTMLDivElement | null> | undefined;
   score: number;
   lines: number;
+  held: PieceType | null;
+  queue: readonly PieceType[];
   pending: number;
   snapshotAvailable: boolean;
   liveLabel: string;
@@ -517,17 +522,72 @@ function PlayerBoard({
         <div><dt>Lines</dt><dd>{formatNumber(lines)}</dd></div>
         <div className={pending > 0 ? styles.incomingAttack : ""}><dt>Incoming</dt><dd>{formatNumber(pending)}<span> lines</span></dd></div>
       </dl>
-      <div
-        className={styles.boardViewport}
-        ref={playfieldRef}
-        tabIndex={you ? 0 : undefined}
-        role={you ? "group" : "img"}
-        aria-label={you ? `${name}'s Tetris playfield. Keyboard controls are available while playing.` : `${name}'s live opponent board, read only.`}
-      >
-        <canvas ref={canvasRef} className={styles.boardCanvas} aria-label={`${name}'s Tetris board`} />
-        {!snapshotAvailable && <div className={styles.boardPlaceholder} aria-hidden="true">{you ? "BOARD STARTING" : "WAITING FOR BOARD"}</div>}
+      <div className={styles.boardLayout}>
+        <aside className={styles.holdPreview} aria-label={`${name}'s held piece`}>
+          <span className={styles.previewTitle}>Hold</span>
+          <PiecePreview type={held} label="Held piece" loading={!snapshotAvailable} />
+        </aside>
+        <div className={styles.boardCenter}>
+          <div
+            className={styles.boardViewport}
+            ref={playfieldRef}
+            tabIndex={you ? 0 : undefined}
+            role={you ? "group" : "img"}
+            aria-label={you ? `${name}'s Tetris playfield. Keyboard controls are available while playing.` : `${name}'s live opponent board, read only.`}
+          >
+            <canvas ref={canvasRef} className={styles.boardCanvas} aria-label={`${name}'s Tetris board`} />
+            {!snapshotAvailable && <div className={styles.boardPlaceholder} aria-hidden="true">{you ? "BOARD STARTING" : "WAITING FOR BOARD"}</div>}
+          </div>
+          <p className={styles.boardCaption}>{you ? "Your stack" : "Opponent · read only"}</p>
+        </div>
+        <aside className={styles.nextPreview} aria-label={`${name}'s next five pieces`}>
+          <span className={styles.previewTitle}>Next</span>
+          <ol className={styles.nextList} aria-label="Next five pieces">
+            {Array.from({ length: 5 }, (_, index) => (
+              <li key={index}>
+                <PiecePreview
+                  type={queue[index] ?? null}
+                  label={`Next piece ${index + 1}`}
+                  loading={!snapshotAvailable}
+                />
+              </li>
+            ))}
+          </ol>
+        </aside>
       </div>
-      <p className={styles.boardCaption}>{you ? "Your stack" : "Opponent · read only"}</p>
     </article>
+  );
+}
+
+function PiecePreview({ type, label, loading }: { type: PieceType | null; label: string; loading: boolean }) {
+  const shape: PreviewShape | null = type ? previewShapes[type] : null;
+  return (
+    <span
+      className={styles.previewGrid}
+      role="img"
+      aria-label={type ? `${label}: ${type} piece` : `${label}: ${loading ? "waiting for board" : "empty"}`}
+    >
+      {shape ? (
+        <span
+          className={styles.previewShape}
+          style={{
+            gridTemplateColumns: `repeat(${shape.columns}, var(--preview-cell))`,
+            gridTemplateRows: `repeat(${shape.rows}, var(--preview-cell))`,
+          }}
+          aria-hidden="true"
+        >
+          {shape.cells.map(([x, y], index) => (
+            <span
+              className={styles.previewCell}
+              data-piece={type}
+              style={{ gridColumn: x + 1, gridRow: y + 1 }}
+              key={index}
+            />
+          ))}
+        </span>
+      ) : (
+        <span className={styles.previewEmpty} aria-hidden="true">{loading ? "Waiting" : "Empty"}</span>
+      )}
+    </span>
   );
 }

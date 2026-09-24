@@ -14,6 +14,8 @@ import MultiplayerSession from "./MultiplayerSession";
 
 const BEST_SCORE_KEY = "tetris-best-score";
 const SOUND_ENABLED_KEY = "tetris-sound-enabled";
+const MUSIC_VOLUME_KEY = "tetris-music-volume";
+const SFX_VOLUME_KEY = "tetris-sfx-volume";
 const FEEDBACK_DURATION_MS: Record<ArcadeFeedback["kind"], number> = {
   drop: 180,
   lock: 130,
@@ -39,6 +41,12 @@ type ActiveFeedback = { value: ArcadeFeedback; expiresAt: number };
 
 function validScore(value: number): boolean {
   return Number.isFinite(value) && Number.isInteger(value) && value >= 0;
+}
+
+function parseVolume(value: string | null): number | null {
+  if (value === null || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed <= 100 ? parsed : null;
 }
 
 function feedbackForEvent(event: GameEvent, id: number): ArcadeFeedback | null {
@@ -85,13 +93,15 @@ export default function GameSession() {
   const feedbackIdRef = useRef(0);
   const bestScoreRef = useRef(0);
   const runStartBestRef = useRef(0);
-  const soundEnabledRef = useRef(false);
+  const musicVolumeRef = useRef(0);
+  const soundVolumeRef = useRef(0);
   const reducedMotionRef = useRef(false);
   const canvasUnavailableRef = useRef(false);
   const [game, setGame] = useState<GameState | null>(null);
   const [canvasUnavailable, setCanvasUnavailable] = useState(false);
   const [bestScore, setBestScore] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0);
+  const [soundVolume, setSoundVolume] = useState(0);
   const [feedback, setFeedback] = useState<ArcadeFeedback | null>(null);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [screen, setScreen] = useState<"menu" | "countdown" | "game" | "multiplayer">("menu");
@@ -137,22 +147,32 @@ export default function GameSession() {
     } catch {
       // Storage may be unavailable (for example, in a private browsing context).
     }
+    let storedMusicVolume = 0;
+    let storedSfxVolume = 0;
     try {
-      const storedSound = window.localStorage.getItem(SOUND_ENABLED_KEY);
-      if (storedSound === "true" || storedSound === "false") {
-        const enabled = storedSound === "true";
-        soundEnabledRef.current = enabled;
-        setSoundEnabled(enabled);
-      }
+      const savedMusic = window.localStorage.getItem(MUSIC_VOLUME_KEY);
+      const savedSfx = window.localStorage.getItem(SFX_VOLUME_KEY);
+      const legacySound = window.localStorage.getItem(SOUND_ENABLED_KEY);
+      const legacyVolume = legacySound === "true" ? 100 : 0;
+      storedMusicVolume = savedMusic === null ? legacyVolume : parseVolume(savedMusic) ?? 0;
+      storedSfxVolume = savedSfx === null ? legacyVolume : parseVolume(savedSfx) ?? 0;
+      if (savedMusic === null) window.localStorage.setItem(MUSIC_VOLUME_KEY, String(storedMusicVolume));
+      if (savedSfx === null) window.localStorage.setItem(SFX_VOLUME_KEY, String(storedSfxVolume));
     } catch {
-      // The sound preference remains off when storage cannot be read.
+      // Audio preferences remain usable for this session if storage is unavailable.
     }
-    music.setEnabled(soundEnabledRef.current);
-    const unlockMusic = () => {
-      if (soundEnabledRef.current) music.unlock();
+    musicVolumeRef.current = storedMusicVolume;
+    soundVolumeRef.current = storedSfxVolume;
+    setMusicVolume(storedMusicVolume);
+    setSoundVolume(storedSfxVolume);
+    music.setVolume(storedMusicVolume);
+    audio.setVolume(storedSfxVolume);
+    const unlockAudio = () => {
+      if (musicVolumeRef.current > 0) music.unlock();
+      if (soundVolumeRef.current > 0) audio.unlock();
     };
-    window.addEventListener("pointerdown", unlockMusic, true);
-    window.addEventListener("keydown", unlockMusic, true);
+    window.addEventListener("pointerdown", unlockAudio, true);
+    window.addEventListener("keydown", unlockAudio, true);
     const cancelCountdown = () => {
       if (countdownTimerRef.current === null) return;
       clearTimeout(countdownTimerRef.current);
@@ -231,7 +251,7 @@ export default function GameSession() {
       }
       effects.push(event, now);
       publishFeedback(event, now);
-      if (soundEnabledRef.current) audio.play(event);
+      if (soundVolumeRef.current > 0) audio.play(event);
       if (effects.hasActive(now)) scheduleEffectFrame();
     });
     const unsubscribe = controller.subscribe((next) => {
@@ -254,8 +274,8 @@ export default function GameSession() {
     draw();
 
     return () => {
-      window.removeEventListener("pointerdown", unlockMusic, true);
-      window.removeEventListener("keydown", unlockMusic, true);
+      window.removeEventListener("pointerdown", unlockAudio, true);
+      window.removeEventListener("keydown", unlockAudio, true);
       window.removeEventListener("blur", cancelCountdown);
       document.removeEventListener("visibilitychange", onHidden);
       if (countdownTimerRef.current !== null) {
@@ -351,7 +371,7 @@ export default function GameSession() {
     clearPresentation();
     setScreen("countdown");
     setCountdown(3);
-    if (soundEnabledRef.current) audioRef.current?.setEnabled(true);
+    if (soundVolumeRef.current > 0) audioRef.current?.unlock();
     musicRef.current?.restartGame();
     musicRef.current?.setStatus("countdown");
     musicRef.current?.unlock();
@@ -394,7 +414,7 @@ export default function GameSession() {
   const start = useCallback(() => {
     clearPresentation();
     runStartBestRef.current = bestScoreRef.current;
-    if (soundEnabledRef.current) audioRef.current?.setEnabled(true);
+    if (soundVolumeRef.current > 0) audioRef.current?.unlock();
     musicRef.current?.restartGame();
     controllerRef.current?.start();
     musicRef.current?.unlock();
@@ -402,7 +422,7 @@ export default function GameSession() {
   }, [clearPresentation, focusBoard]);
   const resume = useCallback(() => {
     clearPresentation();
-    if (soundEnabledRef.current) audioRef.current?.setEnabled(true);
+    if (soundVolumeRef.current > 0) audioRef.current?.unlock();
     controllerRef.current?.resume();
     musicRef.current?.unlock();
     focusBoard();
@@ -411,17 +431,28 @@ export default function GameSession() {
     clearPresentation();
     controllerRef.current?.pause();
   }, [clearPresentation]);
-  const toggleSound = useCallback(() => {
-    const enabled = !soundEnabledRef.current;
-    soundEnabledRef.current = enabled;
-    setSoundEnabled(enabled);
-    audioRef.current?.setEnabled(enabled);
-    musicRef.current?.setEnabled(enabled);
-    if (enabled) musicRef.current?.unlock();
+  const changeMusicVolume = useCallback((value: number) => {
+    const volume = Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0;
+    musicVolumeRef.current = volume;
+    setMusicVolume(volume);
+    musicRef.current?.setVolume(volume);
+    if (volume > 0) musicRef.current?.unlock();
     try {
-      window.localStorage.setItem(SOUND_ENABLED_KEY, String(enabled));
+      window.localStorage.setItem(MUSIC_VOLUME_KEY, String(volume));
     } catch {
-      // Audio toggling remains available for this session.
+      // Audio remains adjustable for this session if storage is unavailable.
+    }
+  }, []);
+  const changeSoundVolume = useCallback((value: number) => {
+    const volume = Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0;
+    soundVolumeRef.current = volume;
+    setSoundVolume(volume);
+    audioRef.current?.setVolume(volume);
+    if (volume > 0) audioRef.current?.unlock();
+    try {
+      window.localStorage.setItem(SFX_VOLUME_KEY, String(volume));
+    } catch {
+      // Audio remains adjustable for this session if storage is unavailable.
     }
   }, []);
 
@@ -440,11 +471,11 @@ export default function GameSession() {
     musicRef.current?.setStatus(phase === "waiting" ? null : phase === "finished" ? "over" : phase);
   }, []);
   const multiplayerGesture = useCallback(() => {
-    if (soundEnabledRef.current) audioRef.current?.setEnabled(true);
-    musicRef.current?.unlock();
+    if (soundVolumeRef.current > 0) audioRef.current?.unlock();
+    if (musicVolumeRef.current > 0) musicRef.current?.unlock();
   }, []);
   const multiplayerEvent = useCallback((event: GameEvent) => {
-    if (soundEnabledRef.current && event.type !== "gameOver") audioRef.current?.play(event);
+    if (soundVolumeRef.current > 0 && event.type !== "gameOver") audioRef.current?.play(event);
   }, []);
 
   return (
@@ -454,8 +485,10 @@ export default function GameSession() {
         onPhase={multiplayerPhase}
         onGesture={multiplayerGesture}
         onGameEvent={multiplayerEvent}
-        soundEnabled={soundEnabled}
-        onToggleSound={toggleSound}
+        musicVolume={musicVolume}
+        soundVolume={soundVolume}
+        onMusicVolumeChange={changeMusicVolume}
+        onSoundVolumeChange={changeSoundVolume}
       />
     ) : (
     <GameView
@@ -474,8 +507,10 @@ export default function GameSession() {
       feedback={feedback}
       bestScore={bestScore}
       newBest={Boolean(game && game.score > runStartBestRef.current)}
-      soundEnabled={soundEnabled}
-      onToggleSound={toggleSound}
+      musicVolume={musicVolume}
+      soundVolume={soundVolume}
+      onMusicVolumeChange={changeMusicVolume}
+      onSoundVolumeChange={changeSoundVolume}
       reducedMotion={reducedMotion}
     />
     )
