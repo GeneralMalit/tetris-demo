@@ -14,7 +14,7 @@ This is a browser Tetris app with singleplayer and two-seat realtime multiplayer
 
 ## Development Commands
 
-Use Node 22+ and npm: `npm ci`, `npm run dev` (web app at `http://localhost:3000`), `npm run dev:multiplayer` (local Worker at `http://localhost:8787`), `npm test`, `npm run typecheck`, `npm run build`, and `npm run start` (after build). Singleplayer works without the Worker. Local multiplayer needs both dev processes; production needs `npm run deploy:multiplayer`, `NEXT_PUBLIC_MULTIPLAYER_API_URL` set to the Worker HTTPS URL when building the web app, and Worker `ALLOWED_ORIGIN` set to the web app's exact HTTPS origin.
+Use Node 22+ and npm: `npm ci`, `npm run dev` (web app at `http://localhost:3000`), `npm run dev:multiplayer` (local Worker at `http://localhost:8787`), `npm test`, `npm run typecheck`, `npm run build`, and `npm run start` (after build). Singleplayer works without the Worker. Local multiplayer needs both dev processes; production uses the deployed `tetris-multiplayer.generalmalit07.workers.dev` Worker by default. `NEXT_PUBLIC_MULTIPLAYER_API_URL` overrides that endpoint when building another frontend. The Worker `ALLOWED_ORIGIN` in `wrangler.jsonc` permits the exact production Vercel origin; update it if the web origin changes.
 
 ## Code Conventions & Common Patterns
 

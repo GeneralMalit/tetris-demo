@@ -12,7 +12,9 @@ import MultiplayerView from "./MultiplayerView";
 const SESSION_KEY = "tetris-multiplayer-session";
 const NAME_KEY = "tetris-player-name";
 const API_BASE = process.env.NEXT_PUBLIC_MULTIPLAYER_API_URL ||
-  (process.env.NODE_ENV === "development" ? "http://localhost:8787" : "");
+  (process.env.NODE_ENV === "development"
+    ? "http://localhost:8787"
+    : "https://tetris-multiplayer.generalmalit07.workers.dev");
 
 interface StoredSession {
   code: string;
