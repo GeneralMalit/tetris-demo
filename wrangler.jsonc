@@ -3,6 +3,9 @@
   "name": "tetris-multiplayer",
   "main": "worker/index.ts",
   "compatibility_date": "2026-09-24",
+  "vars": {
+    "ALLOWED_ORIGIN": "https://tetris-demo-blue.vercel.app"
+  },
   "durable_objects": {
     "bindings": [
       { "name": "MULTIPLAYER_ROOM", "class_name": "GameRoom" }
