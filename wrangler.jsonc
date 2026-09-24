@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tetris-multiplayer",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-24",
+  "durable_objects": {
+    "bindings": [
+      { "name": "MULTIPLAYER_ROOM", "class_name": "GameRoom" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["GameRoom"] }
+  ]
+}

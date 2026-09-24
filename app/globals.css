@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --ink: #171c22;
+  --muted: #354426;
+  --surface: #171c22;
+  --surface-strong: #101417;
+  --stroke: #59656d;
+  --accent: #c4ed65;
+  --accent-warm: #ff51aa;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { min-height: 100%; background: #87bb39; }
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  color: var(--ink);
+  background:
+    radial-gradient(ellipse at 50% -6%, rgba(245, 245, 223, .48), transparent 48%),
+    radial-gradient(circle at 11% 25%, rgba(196, 237, 101, .7), transparent 34%),
+    radial-gradient(circle at 90% 83%, rgba(57, 118, 32, .13), transparent 38%),
+    radial-gradient(rgba(23, 28, 34, .095) .75px, transparent .9px) 0 0 / 19px 19px,
+    linear-gradient(145deg, #c4ed65 0%, #a5d34a 45%, #87bb39 100%);
+}
+button { font: inherit; cursor: pointer; }
+button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #171c22; outline-offset: 4px; box-shadow: 0 0 0 2px #f5f5df; }
+.site-shell { max-width: 1180px; margin: 0 auto; padding: clamp(20px, 4vw, 56px); }
+.eyebrow { color: var(--muted); letter-spacing: .18em; text-transform: uppercase; font-size: .72rem; font-weight: 900; }
+::selection { color: #171c22; background: #36e7ee; }

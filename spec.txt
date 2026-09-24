@@ -1,0 +1,54 @@
+This is going to be the rough journal of creating the live tetris app. One of the things that i’ve thought is that how can we make the live view concurrent from player to player, aka multiplayer synchronization. We have a few options
+
+- supabase realtime - each player runs their own tetris game locally, and they join the same room, and they use Broadcast to snapshot their boards, the score / lines, but yeah, supabase has to send out the start at the same time, like it has to confirm that the room exists, both players are ready, and then if all checks pass, countdown
+- cloudflare durable objects - this one is a stateful server instance per room, meaning essentially this is more akin to the native multiplayer architecture. not because supabase realtime is fake multiplayer, but because this approach map much more naturally to the concept of a game server / room. Player A and B uses websockets to connect to the game room server.
+
+So with this, i think cloudflare durable objects might be the better approach, because instead of broadcasting their local gameplay to supabase and receiving it from supabase, this uses a shared realtime messaging infrastructure. Durable objects mean that it is the authority, supabase realtime approach means that your local instance is the authority, you are just receiving the states from supabase. Now, I should say that we can engineer cloudflare approach with supabase, but then again, with the underlying architecture itself not fitting as well, it is better to stick with their strengths, which is those particular approaches that i have outlined.
+
+Now, with the multiplayer synchronization in mind, i can now design the rest of the tetris application in my mind.
+
+Lets move to other parts of the tetris application, the technical things that we need to answer.
+
+1. What exactly is authoritative on the server?
+    
+    the server should decide the room membership, the game readiness, the start time, match status, winner / rematch state. 
+    
+    everything else such as the movement, rotation, collision, local board simulation still in the browser locally
+    
+2. How are pieces generated?
+    
+    First of all we have the deterministic tetris pieces, but the sequence should be decided by a random seed, and the 2 players share that same seed so we get the same piece sequence.
+    
+3. How often do board updates get sent?
+    
+    the gameplay can run at 30FPS locally, but the opponent board snapshots can be 5 updates per second
+    
+4. Who calculates garbage?
+    
+    The server.
+    
+5. How do simultaneous attacks behave?
+    
+    garbage cancels incoming garbage
+    
+    garbage attacks queue, 5 seconds for each garbage
+    
+6. on disconnect for less than 10 seconds, we allow reconnect, more than that, we forfeit, if we refresh the browser (of course we restore same player)
+7. How are players identified?
+    
+    of course we use a temporary player token upon visiting the website, player token is generated upon name creation, player token is unique, names are permitted to be the same, but the player token generation should be unique. 
+    
+
+### Tech Stack?
+
+Of course, we use the easiest one to deploy: Next.js + React + TypeScript, because its fast to build, easy to demo and is the one that is needed. We use Tailwind CSS for styling to iterate fast.
+
+Our tetris engine would be based on plain typescript module, rendered on HTML canvas. Of course we will be using WebSockets for Multiplayer transport, because it is a native fit for the needed bidirectional realtime communication. As we have mentioned we are using Cloudflare Worker + Durable Objects
+
+App is split to three layers
+
+- React
+- Game Controller
+- Tetris Engine
+
+---
