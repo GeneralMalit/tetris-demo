@@ -64,6 +64,7 @@ export default function MultiplayerSession({
   const clientRef = useRef<MultiplayerClient | null>(null);
   const roomRef = useRef<RoomView | null>(null);
   const storedRef = useRef<StoredSession | null>(null);
+  const autoJoinedInviteRef = useRef("");
   const activeMatchRef = useRef<number | null>(null);
   const sequenceRef = useRef(0);
   const onPhaseRef = useRef(onPhase);
@@ -75,6 +76,7 @@ export default function MultiplayerSession({
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [roomCode, setRoomCode] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
 
   onPhaseRef.current = onPhase;
   onGameEventRef.current = onGameEvent;
@@ -97,13 +99,22 @@ export default function MultiplayerSession({
     });
 
     const initialCode = new URL(window.location.href).searchParams.get("room")?.trim().toUpperCase() ?? "";
-    if (/^[A-Z2-9]{8}$/.test(initialCode)) setRoomCode(initialCode);
-    try { setName(localStorage.getItem(NAME_KEY) ?? ""); } catch { /* Private browsing. */ }
+    const validInvite = /^[A-Z2-9]{8}$/.test(initialCode);
+    if (validInvite) {
+      setRoomCode(initialCode);
+      setInviteCode(initialCode);
+    }
+    let savedName = "";
+    try { savedName = localStorage.getItem(NAME_KEY) ?? ""; } catch { /* Private browsing. */ }
     const saved = readSession();
     storedRef.current = saved;
     if (saved) {
       setName(saved.name);
       if (!initialCode || initialCode === saved.code) setRoomCode(saved.code);
+    } else if (savedName.trim()) {
+      setName(savedName);
+    } else if (validInvite) {
+      setName("Guest");
     }
 
     if (API_BASE) {
@@ -164,7 +175,10 @@ export default function MultiplayerSession({
           setConnection(state);
           if (state === "connected") setError(null);
         },
-        onError: setError,
+        onError: (message) => {
+          if (message === "STALE_MATCH" && roomRef.current?.phase !== "playing") return;
+          setError(message);
+        },
       });
       clientRef.current = client;
       if (saved && (!initialCode || initialCode === saved.code)) {
@@ -276,6 +290,13 @@ export default function MultiplayerSession({
     onGesture();
     joinRoom(roomCode.trim().toUpperCase(), name);
   }, [joinRoom, roomCode, name, onGesture]);
+  useEffect(() => {
+    if (!inviteCode || !name.trim() || !clientRef.current ||
+      autoJoinedInviteRef.current === inviteCode) return;
+    autoJoinedInviteRef.current = inviteCode;
+    if (storedRef.current?.code === inviteCode) return;
+    joinRoom(inviteCode, name);
+  }, [inviteCode, name, joinRoom]);
   const ready = useCallback((value: boolean) => {
     onGesture();
     clientRef.current?.send({ type: "ready", ready: value });

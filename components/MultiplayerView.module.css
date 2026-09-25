@@ -123,6 +123,18 @@
 .rematchActions { display: grid; justify-items: end; gap: 5px; }
 .rematchActions .primaryButton { min-width: 180px; }
 .rematchActions > p { margin: 0; color: #536154; font-size: .57rem; font-weight: 750; text-align: right; }
+.resultDialog { width: min(440px, calc(100vw - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: clamp(20px, 5vw, 32px); border: 2px solid var(--ink); border-radius: 9px; background: linear-gradient(140deg, #f4f5df, #d4e0d1); box-shadow: 5px 6px 0 var(--ink); color: var(--ink); text-align: center; }
+.resultDialog::backdrop { background: rgba(7, 10, 12, .48); backdrop-filter: blur(6px); }
+.resultDialog[open] { animation: resultDialogEnter 220ms ease-out both; }
+.resultDialog .resultDialogOutcome { margin: 0; color: #087f89; font-size: .69rem; font-weight: 1000; letter-spacing: .18em; text-transform: uppercase; }
+.resultDialog h2 { margin: 5px 0 8px; font-family: "Arial Black", Impact, Arial, sans-serif; font-size: clamp(2.2rem, 10vw, 3.8rem); font-weight: 1000; letter-spacing: -.08em; line-height: .95; }
+.resultDialogMessage { margin: 0 0 21px; color: #47564a; font-size: .88rem; font-weight: 800; }
+.resultDialog .primaryButton { width: 100%; }
+
+@keyframes resultDialogEnter {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .battleBoards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: clamp(11px, 3vw, 30px); }
 .playerBoard { min-width: 0; padding: 11px clamp(8px, 2vw, 16px) 10px; border: 2px solid var(--ink); border-radius: 7px; background: linear-gradient(160deg, #202a2d, #111619); box-shadow: 4px 5px 0 var(--ink); color: var(--paper); }

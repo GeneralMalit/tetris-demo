@@ -360,6 +360,14 @@ function RoomScreen({
   const resultDetail = room.finishReason
     ? `${room.winner === room.you ? rival?.name ?? "Your opponent" : localName} ${finishVerb}.`
     : "The match is complete.";
+  const [dismissedResultId, setDismissedResultId] = useState<number | null>(null);
+  const resultDialogRef = useRef<HTMLDialogElement>(null);
+  const showResultDialog = room.phase === "finished" && dismissedResultId !== room.matchId;
+  useEffect(() => {
+    const dialog = resultDialogRef.current;
+    if (showResultDialog && dialog && !dialog.open) dialog.showModal();
+  }, [showResultDialog]);
+
 
   return (
     <section className={styles.room} aria-label={`Room ${room.code}`}>
@@ -465,6 +473,22 @@ function RoomScreen({
           )}
           {room.phase === "playing" && local?.status !== "playing" && <p className={styles.waitingStatus} role="status">Waiting for the room to finish this round…</p>}
         </>
+      )}
+      {showResultDialog && (
+        <dialog
+          ref={resultDialogRef}
+          className={styles.resultDialog}
+          aria-labelledby="final-result-dialog-title"
+          aria-describedby="final-result-dialog-message"
+          onCancel={() => setDismissedResultId(room.matchId)}
+        >
+          <p className={styles.resultDialogOutcome}>{resultTitle}</p>
+          <h2 id="final-result-dialog-title">GAME OVER</h2>
+          <p className={styles.resultDialogMessage} id="final-result-dialog-message">{resultDetail}</p>
+          <button className={styles.primaryButton} type="button" autoFocus onClick={() => setDismissedResultId(room.matchId)}>
+            View match results <span aria-hidden="true">→</span>
+          </button>
+        </dialog>
       )}
     </section>
   );

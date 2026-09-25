@@ -22,7 +22,7 @@ Keep the engine rules independent of rendering and wall time. The engine mutates
 
 Keep the frame tight to the 10×20 canvas and Hold/Next shapes centered by occupied bounds inside black wells. Both multiplayer boards show Hold and the next five pieces; snapshots carry `held` and five `queue` entries. Presentation consumes controller `subscribeEvents`; never infer clears from score deltas. Clear-row coordinates precede compaction and include hidden rows. Combo counts consecutive clearing placements and adds no scoring bonus. Clear transient effects on pause/restart/game-over; stop effect RAFs when idle. Respect reduced motion. Music and SFX have independent 0–100 controls, default off, and must not create/resume an audio context outside a user gesture. Storage/audio failures must leave gameplay usable.
 
-Multiplayer identities use sessionStorage reconnect tokens and localStorage display names. The Durable Object decides seats, readiness, start, winner, rematch, and garbage; each browser sends validated board snapshots at four per second and locally simulates its seeded board. Clears emit placement-stamped attacks; incoming garbage cancels first, the rest arrives after five seconds in groups of at most four. Reconnect within ten seconds or forfeit; refreshed clients restore board and bag state. `src/multiplayer/protocol.ts` is the shared wire contract. Client simulation is trusted for clear claims, not server-authoritative anti-cheat.
+Multiplayer identities use sessionStorage reconnect tokens and localStorage display names. Valid `?room=CODE` links auto-join with the saved display name or a `Guest` fallback; finished matches open a dismissible blurred result dialog using the room's winner and finish reason. The Durable Object decides seats, readiness, start, winner, rematch, and garbage; each browser sends validated board snapshots at four per second and locally simulates its seeded board. Clears emit placement-stamped attacks; incoming garbage cancels first, the rest arrives after five seconds in groups of at most four. Reconnect within ten seconds or forfeit; refreshed clients restore board and bag state. `src/multiplayer/protocol.ts` is the shared wire contract. Client simulation is trusted for clear claims, not server-authoritative anti-cheat.
 
 ## Important Files
 
@@ -39,3 +39,13 @@ Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, Vitest 5, Wrangler 4, and np
 ## Testing & QA
 
 Run `npm test` for engine/controller regressions and `npm run typecheck` plus `npm run build` before shipping. Browser QA covers solo gameplay and desktop/phone multiplayer: room create/join, ready countdown, two boards with Hold/Next previews, attacks and garbage, topout/winner, rematch, reconnect/forfeit, centered board proportions, and touch controls. Best score and audio levels use `tetris-best-score`, `tetris-music-volume`, and `tetris-sfx-volume` localStorage keys; the old `tetris-sound-enabled` key migrates only when volume keys are absent. Solo controls: arrows move/soft drop/rotate, X/Z rotate, Space hard drops, C holds, P/Escape pause. Multiplayer cannot pause, and its phone layout has on-screen controls.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
