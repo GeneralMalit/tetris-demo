@@ -66,18 +66,6 @@ const PiecePreview = memo(function PiecePreview({ type, label }: { type: PieceTy
   );
 });
 
-function StatusPill({ game }: { game: GameState | null }) {
-  const status = game?.status ?? "ready";
-  const label = status === "playing" ? "In play" : status === "paused" ? "Paused" : status === "over" ? "Game over" : "Ready";
-  const statusClass = status === "playing" ? styles.statusPlaying : status === "paused" ? styles.statusPaused : status === "over" ? styles.statusOver : styles.statusReady;
-
-  return (
-    <div className={`${styles.statusPill} ${statusClass}`} role="status" aria-atomic="true">
-      <span className={styles.statusDot} aria-hidden="true" />
-      <span>{label}</span>
-    </div>
-  );
-}
 
 export default function GameView({
   game,
@@ -157,15 +145,12 @@ export default function GameView({
           <div className={styles.brandMark} aria-hidden="true"><span /><span /><span /><span /></div>
           <h1 className={styles.title}>TET<span className={styles.titleCyan}>R</span><span className={styles.titlePink}>IS</span></h1>
         </div>
-        <div className={styles.headerTools}>
-          <StatusPill game={screen === "menu" ? null : game} />
-          <AudioControls
-            musicVolume={musicVolume}
-            soundVolume={soundVolume}
-            onMusicVolumeChange={onMusicVolumeChange}
-            onSoundVolumeChange={onSoundVolumeChange}
-          />
-        </div>
+        <AudioControls
+          musicVolume={musicVolume}
+          soundVolume={soundVolume}
+          onMusicVolumeChange={onMusicVolumeChange}
+          onSoundVolumeChange={onSoundVolumeChange}
+        />
       </header>
       {screen === "menu" ? (
         <section className={styles.modeScreen} aria-labelledby="mode-heading">

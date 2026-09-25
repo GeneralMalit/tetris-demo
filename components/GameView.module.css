@@ -160,14 +160,11 @@
 
 .modeFootnote { margin: 18px 0 0; color: #59656d; font-size: .62rem; font-weight: 800; letter-spacing: .06em; }
 
-.brand,
-.headerTools {
+.brand {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
-
-.brand { gap: 8px; }
-.headerTools { gap: 6px; }
 
 .brandMark {
   display: grid;
@@ -201,28 +198,6 @@
 .titleCyan { color: #087f89; }
 .titlePink { color: #d3297e; }
 
-.statusPill {
-  display: inline-flex;
-  min-height: 25px;
-  align-items: center;
-  gap: 5px;
-  padding: 0 7px;
-  border: 1px solid #59656d;
-  border-radius: 4px;
-  background: #171c22;
-  color: #f5f5df;
-  font-size: .59rem;
-  font-weight: 900;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.statusDot { width: 7px; height: 7px; border: 1px solid #080b0d; border-radius: 50%; background: currentColor; }
-.statusPlaying { color: #c4ed65; }
-.statusPaused { color: #ffd477; }
-.statusOver { color: #ff7188; }
-.statusReady { color: #f5f5df; }
 
 .scoreboard {
   display: grid;
@@ -723,8 +698,6 @@
 
   .title { font-size: 1.72rem; }
   .brandMark { grid-template-columns: repeat(2, 8px); grid-template-rows: repeat(2, 8px); padding: 3px; }
-  .headerTools { gap: 4px; }
-  .statusPill { min-height: 24px; gap: 4px; padding: 0 5px; font-size: .54rem; }
   .scoreboard { gap: 4px 8px; padding: 6px 8px 5px; }
   .scoreReadout { gap: 9px; }
   .scoreValue { font-size: clamp(1.2rem, 6vw, 1.62rem); }
@@ -754,7 +727,6 @@
   .modeIcon { width: 34px; height: 34px; flex-basis: 34px; }
   .page { --rail-size: 44px; --board-width: min(230px, calc(100vw - 148px)); padding-right: 10px; padding-left: 10px; }
   .brandMark { display: none; }
-  .statusPill { padding-inline: 4px; font-size: .51rem; }
   .scoreboard { padding-right: 6px; padding-left: 6px; column-gap: 6px; }
   .scoreReadout { gap: 7px; }
   .statsReadout { gap: 7px; }
