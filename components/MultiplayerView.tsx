@@ -284,6 +284,7 @@ export default function MultiplayerView({
           clockAnchor={clockAnchor}
           clockNow={clockNow}
           onReady={onReady}
+          onLeave={onLeave}
           onAction={onAction}
           onPress={onPress}
           onRelease={onRelease}
@@ -309,6 +310,7 @@ function RoomScreen({
   clockAnchor,
   clockNow,
   onReady,
+  onLeave,
   onAction,
   onPress,
   onRelease,
@@ -328,6 +330,7 @@ function RoomScreen({
   clockAnchor: { serverNow: number; localNow: number };
   clockNow: number;
   onReady: (ready: boolean) => void;
+  onLeave: () => void;
   onAction: (action: GameAction) => void;
   onPress: (action: HeldAction) => void;
   onRelease: (action: HeldAction) => void;
@@ -365,7 +368,10 @@ function RoomScreen({
   const showResultDialog = room.phase === "finished" && dismissedResultId !== room.matchId;
   useEffect(() => {
     const dialog = resultDialogRef.current;
-    if (showResultDialog && dialog && !dialog.open) dialog.showModal();
+    if (showResultDialog && dialog && !dialog.open) {
+      dialog.showModal();
+      dialog.focus({ preventScroll: true });
+    }
   }, [showResultDialog]);
 
 
@@ -478,6 +484,7 @@ function RoomScreen({
         <dialog
           ref={resultDialogRef}
           className={styles.resultDialog}
+          tabIndex={-1}
           aria-labelledby="final-result-dialog-title"
           aria-describedby="final-result-dialog-message"
           onCancel={() => setDismissedResultId(room.matchId)}
@@ -485,8 +492,8 @@ function RoomScreen({
           <p className={styles.resultDialogOutcome}>{resultTitle}</p>
           <h2 id="final-result-dialog-title">GAME OVER</h2>
           <p className={styles.resultDialogMessage} id="final-result-dialog-message">{resultDetail}</p>
-          <button className={styles.primaryButton} type="button" autoFocus onClick={() => setDismissedResultId(room.matchId)}>
-            View match results <span aria-hidden="true">→</span>
+          <button className={styles.primaryButton} type="button" onClick={onLeave}>
+            Back to menu <span aria-hidden="true">→</span>
           </button>
         </dialog>
       )}
